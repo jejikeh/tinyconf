@@ -1,2 +1,4 @@
 # glow
-glow is a small virtual machine
+
+
+change project name somewhere in the future.
