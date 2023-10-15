@@ -2,5 +2,5 @@ psh 0
 psh 1
 dplc 1
 dplc 1
-plus
-jmp 2
+sum
+end

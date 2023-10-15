@@ -82,8 +82,14 @@ func NewEnd() Instruction {
 }
 
 var AmbientAsmInstructionType = map[string]InstructionType{
-	"psh":  Push,
-	"plus": Plus,
-	"dplc": Duplicate,
-	"jmp":  Jump,
+	"psh":   Push,
+	"dplc":  Duplicate,
+	"sum":   Plus,
+	"minus": Minus,
+	"mul":   Multiply,
+	"div":   Divide,
+	"jmp":   Jump,
+	"jif":   JumpIfTrue,
+	"eq":    Equal,
+	"end":   End,
 }

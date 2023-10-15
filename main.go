@@ -18,7 +18,7 @@ func main() {
 	ambient.LoadAmbientAsmFromFile(*sourcePath)
 	ambient.PrintInstructions()
 
-	for i := 0; i < 100; i++ {
+	for !ambient.End {
 		err := ambient.Run()
 		if err != common.Ok {
 			fmt.Printf("Error: %s\n", err.String())
