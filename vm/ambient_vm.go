@@ -1,7 +1,11 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/jejikeh/ambient/common"
 )
@@ -43,7 +47,6 @@ func (a *Ambient) Run() common.Error {
 
 		a.Stack = append(a.Stack, instruction.Operand)
 		a.InstructionPointer++
-		break
 
 	case common.Duplicate:
 		// Duplicate the top of the stack.
@@ -62,7 +65,6 @@ func (a *Ambient) Run() common.Error {
 
 		a.Stack = append(a.Stack, a.Stack[len(a.Stack)-1-instruction.Operand])
 		a.InstructionPointer++
-		break
 
 	case common.Plus:
 		// Add the top two values on the stack.
@@ -80,7 +82,6 @@ func (a *Ambient) Run() common.Error {
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] + a.Stack[len(a.Stack)-1]
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
-		break
 
 	case common.Minus:
 		// Subtract the top two values on the stack.
@@ -98,7 +99,6 @@ func (a *Ambient) Run() common.Error {
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] - a.Stack[len(a.Stack)-1]
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
-		break
 
 	case common.Multiply:
 		// Multiply the top two values on the stack.
@@ -116,7 +116,6 @@ func (a *Ambient) Run() common.Error {
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] * a.Stack[len(a.Stack)-1]
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
-		break
 
 	case common.Divide:
 		// Divide the top two values on the stack.
@@ -138,7 +137,6 @@ func (a *Ambient) Run() common.Error {
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] / a.Stack[len(a.Stack)-1]
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
-		break
 
 	case common.Jump:
 		// Jump to a new instruction.
@@ -151,7 +149,6 @@ func (a *Ambient) Run() common.Error {
 		}
 
 		a.InstructionPointer = instruction.Operand
-		break
 
 	case common.JumpIfTrue:
 		// Jump to a new instruction if the top of the stack is true (1).
@@ -173,7 +170,6 @@ func (a *Ambient) Run() common.Error {
 
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer = instruction.Operand
-		break
 
 	case common.Equal:
 		// instruction if the top of the stack is equal.
@@ -196,12 +192,10 @@ func (a *Ambient) Run() common.Error {
 
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
-		break
 
 	case common.End:
 		a.End = true
 		a.InstructionPointer++
-		break
 
 	default:
 		return common.IllegalInstruction
@@ -221,4 +215,54 @@ func (a *Ambient) PrintStack() {
 	}
 
 	fmt.Println()
+}
+
+func (a *Ambient) SaveProgramToNewFile(filepath string) {
+	f, err := os.Create(filepath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	_, err = f.Write(a.serializeInstructions())
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (a *Ambient) LoadProgramFromFile(filepath string) {
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		fmt.Println("Err")
+	}
+
+	a.LoadProgram(deserializeInstructions(content))
+}
+
+// TODO: Maybe change return type to []byte, error?
+func (a *Ambient) serializeInstructions() []byte {
+	var buff bytes.Buffer
+
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(a.Instructions)
+
+	if err != nil {
+		log.Fatal("Error encoding instructions: ", err)
+	}
+
+	return buff.Bytes()
+}
+
+func deserializeInstructions(buff []byte) []common.Instruction {
+	var instructions []common.Instruction
+
+	dec := gob.NewDecoder(bytes.NewBuffer(buff))
+	err := dec.Decode(&instructions)
+	if err != nil {
+		log.Fatal("Error decoding instructions: ", err)
+	}
+
+	return instructions
 }

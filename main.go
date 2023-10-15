@@ -10,14 +10,16 @@ import (
 func main() {
 	ambient := vm.NewAmbient()
 
-	ambient.LoadProgram([]common.Instruction{
-		common.NewPush(0),
-		common.NewPush(1),
-		common.NewDuplicate(1),
-		common.NewDuplicate(1),
-		common.NewPlus(),
-		common.NewJump(2),
-	})
+	// ambient.LoadProgram([]common.Instruction{
+	// 	common.NewPush(0),
+	// 	common.NewPush(1),
+	// 	common.NewDuplicate(1),
+	// 	common.NewDuplicate(1),
+	// 	common.NewPlus(),
+	// 	common.NewJump(2),
+	// })
+
+	ambient.LoadProgramFromFile("out.amb")
 
 	for i := 0; i < 100; i++ {
 		err := ambient.Run()
@@ -29,11 +31,5 @@ func main() {
 	}
 
 	ambient.PrintStack()
-
-	a, b := 0, 1
-	for i := 0; i <= 64; i++ {
-		fmt.Printf("	%d: %d\n", i, a)
-		a, b = b, a+b
-	}
-	fmt.Println()
+	// ambient.SaveProgramToNewFile("out.amb")
 }
