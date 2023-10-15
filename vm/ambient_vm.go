@@ -1,11 +1,14 @@
 package vm
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/jejikeh/ambient/common"
 )
@@ -217,8 +220,22 @@ func (a *Ambient) PrintStack() {
 	fmt.Println()
 }
 
-func (a *Ambient) SaveProgramToNewFile(filepath string) {
-	f, err := os.Create(filepath)
+func (a *Ambient) PrintInstructions() {
+	fmt.Println("Instructions:")
+	for i, v := range a.Instructions {
+		fmt.Printf("	%d: %s %d\n", i, v.Type.String(), v.Operand)
+	}
+
+	fmt.Println()
+}
+
+func (a *Ambient) SaveProgramToNewFile(dir string, filepath string) {
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Create(dir + filepath)
 
 	if err != nil {
 		log.Fatal(err)
@@ -265,4 +282,40 @@ func deserializeInstructions(buff []byte) []common.Instruction {
 	}
 
 	return instructions
+}
+
+func (a *Ambient) LoadAmbientAsm(asm string) {
+	scanner := bufio.NewScanner(strings.NewReader(asm))
+	for scanner.Scan() {
+		a.Instructions = append(a.Instructions, translateLineToInstruction(scanner.Text()))
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("error occurred while reading AmbientAsm: %v\n", err)
+	}
+}
+
+// TODO: Move Instruction to separate file, move this function to instruction.go
+func translateLineToInstruction(line string) common.Instruction {
+	if len(line) == 0 {
+		return common.NewEnd()
+	}
+
+	instructionByDelimiter := strings.Split(line, " ")
+
+	instKind, ok := common.AmbientAsmInstructionType[instructionByDelimiter[0]]
+	if !ok {
+		log.Fatalf("Unknown instruction: %s\n", instructionByDelimiter[0])
+	}
+
+	if len(instructionByDelimiter) != 2 {
+		return common.NewInstruction(instKind, 0)
+	}
+
+	operand, err := strconv.Atoi(instructionByDelimiter[1])
+	if err != nil {
+		log.Fatalf("Invalid operand: %s\n", instructionByDelimiter[1])
+	}
+
+	return common.NewInstruction(instKind, operand)
 }

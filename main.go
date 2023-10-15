@@ -8,18 +8,16 @@ import (
 )
 
 func main() {
+	x := `psh 0
+psh 1
+dplc 1
+dplc 1
+plus
+jmp 2`
+
 	ambient := vm.NewAmbient()
-
-	// ambient.LoadProgram([]common.Instruction{
-	// 	common.NewPush(0),
-	// 	common.NewPush(1),
-	// 	common.NewDuplicate(1),
-	// 	common.NewDuplicate(1),
-	// 	common.NewPlus(),
-	// 	common.NewJump(2),
-	// })
-
-	ambient.LoadProgramFromFile("out.amb")
+	ambient.LoadAmbientAsm(x)
+	ambient.PrintInstructions()
 
 	for i := 0; i < 100; i++ {
 		err := ambient.Run()
@@ -31,5 +29,5 @@ func main() {
 	}
 
 	ambient.PrintStack()
-	// ambient.SaveProgramToNewFile("out.amb")
+	ambient.SaveProgramToNewFile("examples/binary/", "fib.amb")
 }

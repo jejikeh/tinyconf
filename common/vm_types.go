@@ -80,3 +80,10 @@ func NewEqual() Instruction {
 func NewEnd() Instruction {
 	return NewInstruction(End, 0)
 }
+
+var AmbientAsmInstructionType = map[string]InstructionType{
+	"psh":  Push,
+	"plus": Plus,
+	"dplc": Duplicate,
+	"jmp":  Jump,
+}
