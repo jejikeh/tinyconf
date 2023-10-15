@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/jejikeh/ambient/common"
@@ -8,15 +9,13 @@ import (
 )
 
 func main() {
-	x := `psh 0
-psh 1
-dplc 1
-dplc 1
-plus
-jmp 2`
+	sourcePath := flag.String("source", "", "Source file")
+	output := flag.String("output", "", "Output file")
+
+	flag.Parse()
 
 	ambient := vm.NewAmbient()
-	ambient.LoadAmbientAsm(x)
+	ambient.LoadAmbientAsmFromFile(*sourcePath)
 	ambient.PrintInstructions()
 
 	for i := 0; i < 100; i++ {
@@ -29,5 +28,5 @@ jmp 2`
 	}
 
 	ambient.PrintStack()
-	ambient.SaveProgramToNewFile("examples/binary/", "fib.amb")
+	ambient.SaveProgramToNewFile(*output)
 }

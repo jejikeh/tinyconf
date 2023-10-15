@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -229,13 +230,13 @@ func (a *Ambient) PrintInstructions() {
 	fmt.Println()
 }
 
-func (a *Ambient) SaveProgramToNewFile(dir string, filepath string) {
-	err := os.MkdirAll(dir, os.ModePerm)
+func (a *Ambient) SaveProgramToNewFile(outputPath string) {
+	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	f, err := os.Create(dir + filepath)
+	f, err := os.Create(outputPath)
 
 	if err != nil {
 		log.Fatal(err)
@@ -282,6 +283,23 @@ func deserializeInstructions(buff []byte) []common.Instruction {
 	}
 
 	return instructions
+}
+func (a *Ambient) LoadAmbientAsmFromFile(sourcePath string) {
+	readFile, err := os.Open(sourcePath)
+
+	if err != nil {
+		log.Fatalf("error opening file: %v\n", err)
+	}
+
+	defer readFile.Close()
+
+	fileScanner := bufio.NewScanner(readFile)
+
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		a.LoadAmbientAsm(fileScanner.Text())
+	}
 }
 
 func (a *Ambient) LoadAmbientAsm(asm string) {
