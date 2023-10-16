@@ -3,4 +3,4 @@ psh 1
 dplc 1
 dplc 1
 sum
-end
+jmp 2

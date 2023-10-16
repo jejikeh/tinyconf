@@ -18,7 +18,6 @@ type Ambient struct {
 	Stack              []int
 	Instructions       []common.Instruction
 	InstructionPointer int
-	End                bool
 }
 
 func NewAmbient() *Ambient {
@@ -26,7 +25,6 @@ func NewAmbient() *Ambient {
 		Stack:              make([]int, 0),
 		Instructions:       make([]common.Instruction, 0),
 		InstructionPointer: 0,
-		End:                false,
 	}
 }
 
@@ -198,7 +196,6 @@ func (a *Ambient) Run() common.Error {
 		a.InstructionPointer++
 
 	case common.End:
-		a.End = true
 		a.InstructionPointer++
 
 	default:
@@ -206,6 +203,22 @@ func (a *Ambient) Run() common.Error {
 	}
 
 	return common.Ok
+}
+
+func (a *Ambient) Execute(executingLimit int, printCurrentInstruction bool) {
+	isInfinite := executingLimit < 0
+	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Type != common.End)) || isInfinite; i++ {
+		err := a.Run()
+		if err != common.Ok {
+			log.Printf("Error: %s\n", err.String())
+			a.PrintStack()
+			panic(1)
+		}
+
+		if printCurrentInstruction {
+			fmt.Printf("[%d] Current pointer -> [%d: %s]\n", i, a.InstructionPointer, a.Instructions[a.InstructionPointer].Type.String())
+		}
+	}
 }
 
 func (a *Ambient) PrintStack() {
@@ -228,6 +241,47 @@ func (a *Ambient) PrintInstructions() {
 	}
 
 	fmt.Println()
+}
+
+func (a *Ambient) DumpDisasembleInstructions(s *string) {
+	for _, v := range a.Instructions {
+		instructionTextRepresentation := common.AmbientAsmInstruction[v.Type]
+		if v.Type == common.Plus || v.Type == common.Minus || v.Type == common.Multiply || v.Type == common.Divide || v.Type == common.End {
+			*s += instructionTextRepresentation + "\n"
+			continue
+		}
+
+		instructionTextRepresentation += " " + strconv.Itoa(v.Operand)
+		*s += instructionTextRepresentation + "\n"
+	}
+}
+
+func (a *Ambient) DumpDisasembleInstructionsToFile(outputPath string) {
+	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Create(outputPath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	for _, v := range a.Instructions {
+		instructionTextRepresentation := common.AmbientAsmInstruction[v.Type]
+		if v.Type == common.Plus || v.Type == common.Minus || v.Type == common.Multiply || v.Type == common.Divide || v.Type == common.End {
+			f.Write([]byte(instructionTextRepresentation))
+			f.Write([]byte("\n"))
+			continue
+		}
+
+		instructionTextRepresentation += " " + strconv.Itoa(v.Operand)
+		f.Write([]byte(instructionTextRepresentation))
+		f.Write([]byte("\n"))
+	}
 }
 
 func (a *Ambient) SaveProgramToNewFile(outputPath string) {
@@ -284,7 +338,8 @@ func deserializeInstructions(buff []byte) []common.Instruction {
 
 	return instructions
 }
-func (a *Ambient) LoadAmbientAsmFromFile(sourcePath string) {
+
+func (a *Ambient) LoadByteCodeAsmFromFile(sourcePath string) {
 	readFile, err := os.Open(sourcePath)
 
 	if err != nil {
@@ -298,23 +353,23 @@ func (a *Ambient) LoadAmbientAsmFromFile(sourcePath string) {
 	fileScanner.Split(bufio.ScanLines)
 
 	for fileScanner.Scan() {
-		a.LoadAmbientAsm(fileScanner.Text())
+		a.loadByteCodeAsmFromString(fileScanner.Text())
 	}
 }
 
-func (a *Ambient) LoadAmbientAsm(asm string) {
+func (a *Ambient) loadByteCodeAsmFromString(asm string) {
 	scanner := bufio.NewScanner(strings.NewReader(asm))
 	for scanner.Scan() {
-		a.Instructions = append(a.Instructions, translateLineToInstruction(scanner.Text()))
+		a.Instructions = append(a.Instructions, translateByteCodeLineToInstruction(scanner.Text()))
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("error occurred while reading AmbientAsm: %v\n", err)
+		log.Fatalf("error occurred while reading ByteCode Asm: %v\n", err)
 	}
 }
 
 // TODO: Move Instruction to separate file, move this function to instruction.go
-func translateLineToInstruction(line string) common.Instruction {
+func translateByteCodeLineToInstruction(line string) common.Instruction {
 	if len(line) == 0 {
 		return common.NewEnd()
 	}

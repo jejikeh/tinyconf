@@ -93,3 +93,16 @@ var AmbientAsmInstructionType = map[string]InstructionType{
 	"eq":    Equal,
 	"end":   End,
 }
+
+var AmbientAsmInstruction = map[InstructionType]string{
+	Push:       "psh",
+	Duplicate:  "dplc",
+	Plus:       "sum",
+	Minus:      "minus",
+	Multiply:   "mul",
+	Divide:     "div",
+	Jump:       "jmp",
+	JumpIfTrue: "jif",
+	Equal:      "eq",
+	End:        "end",
+}

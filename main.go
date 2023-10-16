@@ -4,29 +4,83 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/jejikeh/ambient/common"
 	"github.com/jejikeh/ambient/vm"
 )
 
 func main() {
-	sourcePath := flag.String("source", "", "Source file")
-	output := flag.String("output", "", "Output file")
+	debugFlag := flag.Bool("debug", false, "Debug")
+
+	sourcePath := flag.String("i", "", "Source file")
+	outputPath := flag.String("o", "", "Output file")
+
+	// Build Command
+	buildCommand := flag.Bool("build", false, "Build binary")
+	defer buildBinary(buildCommand, sourcePath, outputPath, debugFlag)
+
+	// Disassemble Command
+	disassembleCommand := flag.Bool("dis", false, "Disassemble binary")
+	defer dissembleBinary(disassembleCommand, sourcePath, outputPath)
+
+	// Run Command
+	runCommand := flag.Bool("run", false, "Run binary")
+	binaryFlag := flag.Bool("x", false, "Binary flag")
+	defer runBinary(runCommand, binaryFlag, sourcePath, debugFlag)
 
 	flag.Parse()
+}
 
-	ambient := vm.NewAmbient()
-	ambient.LoadAmbientAsmFromFile(*sourcePath)
-	ambient.PrintInstructions()
-
-	for !ambient.End {
-		err := ambient.Run()
-		if err != common.Ok {
-			fmt.Printf("Error: %s\n", err.String())
-			ambient.PrintStack()
-			panic(1)
-		}
+func dissembleBinary(disassembleFlag *bool, source *string, output *string) {
+	if !*disassembleFlag {
+		return
 	}
 
-	ambient.PrintStack()
+	ambient := vm.NewAmbient()
+	ambient.LoadProgramFromFile(*source)
+
+	if *output == "" {
+		dissasembleContent := ""
+		ambient.DumpDisasembleInstructions(&dissasembleContent)
+		fmt.Println(dissasembleContent)
+		return
+	}
+
+	ambient.DumpDisasembleInstructionsToFile(*output)
+}
+
+func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
+	if !*runFlag {
+		return
+	}
+
+	ambient := vm.NewAmbient()
+
+	if *binaryFlag {
+		ambient.LoadProgramFromFile(*source)
+	} else {
+		ambient.LoadByteCodeAsmFromFile(*source)
+	}
+
+	if *debug {
+		ambient.PrintInstructions()
+		ambient.Execute(-10, true)
+		ambient.PrintStack()
+		return
+	}
+
+	ambient.Execute(10, false)
+}
+
+func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) {
+	if !*binaryFlag {
+		return
+	}
+
+	ambient := vm.NewAmbient()
+	ambient.LoadByteCodeAsmFromFile(*source)
+
+	if *debug {
+		ambient.PrintInstructions()
+	}
+
 	ambient.SaveProgramToNewFile(*output)
 }
