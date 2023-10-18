@@ -1,6 +1,7 @@
+# This is a comment
 psh 0
 psh 1
 dplc 1
 dplc 1
 sum
-jmp 2
+jmp 2 # this is a comment

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -360,7 +361,10 @@ func (a *Ambient) LoadByteCodeAsmFromFile(sourcePath string) {
 func (a *Ambient) loadByteCodeAsmFromString(asm string) {
 	scanner := bufio.NewScanner(strings.NewReader(asm))
 	for scanner.Scan() {
-		a.Instructions = append(a.Instructions, translateByteCodeLineToInstruction(scanner.Text()))
+		inst, err := translateByteCodeLineToInstruction(scanner.Text())
+		if err == nil {
+			a.Instructions = append(a.Instructions, inst)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -369,9 +373,13 @@ func (a *Ambient) loadByteCodeAsmFromString(asm string) {
 }
 
 // TODO: Move Instruction to separate file, move this function to instruction.go
-func translateByteCodeLineToInstruction(line string) common.Instruction {
+func translateByteCodeLineToInstruction(line string) (common.Instruction, error) {
 	if len(line) == 0 {
-		return common.NewEnd()
+		return common.NewEnd(), nil
+	}
+
+	if line[0] == '#' {
+		return common.NewEnd(), errors.New("Comment")
 	}
 
 	instructionByDelimiter := strings.Split(line, " ")
@@ -381,8 +389,8 @@ func translateByteCodeLineToInstruction(line string) common.Instruction {
 		log.Fatalf("Unknown instruction: %s\n", instructionByDelimiter[0])
 	}
 
-	if len(instructionByDelimiter) != 2 {
-		return common.NewInstruction(instKind, 0)
+	if len(instructionByDelimiter) < 2 {
+		return common.NewInstruction(instKind, 0), nil
 	}
 
 	operand, err := strconv.Atoi(instructionByDelimiter[1])
@@ -390,5 +398,5 @@ func translateByteCodeLineToInstruction(line string) common.Instruction {
 		log.Fatalf("Invalid operand: %s\n", instructionByDelimiter[1])
 	}
 
-	return common.NewInstruction(instKind, operand)
+	return common.NewInstruction(instKind, operand), nil
 }

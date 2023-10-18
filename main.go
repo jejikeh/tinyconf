@@ -62,12 +62,12 @@ func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
 
 	if *debug {
 		ambient.PrintInstructions()
-		ambient.Execute(-10, true)
+		ambient.Execute(100, true)
 		ambient.PrintStack()
 		return
 	}
 
-	ambient.Execute(10, false)
+	ambient.Execute(100, false)
 }
 
 func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) {
