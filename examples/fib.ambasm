@@ -1,7 +1,9 @@
-# This is a comment
-psh 0
+# this is it
+psh 10
+:handle
 psh 1
-dplc 1
-dplc 1
-sum
-jmp 2 # this is a comment
+minus
+jif m
+jmp handle
+:m
+end

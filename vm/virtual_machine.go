@@ -18,6 +18,8 @@ import (
 type Ambient struct {
 	Stack              []int
 	Instructions       []common.Instruction
+	Labels             map[string]int
+	NotResolvedLabels  map[string]int
 	InstructionPointer int
 }
 
@@ -25,6 +27,8 @@ func NewAmbient() *Ambient {
 	return &Ambient{
 		Stack:              make([]int, 0),
 		Instructions:       make([]common.Instruction, 0),
+		Labels:             make(map[string]int),
+		NotResolvedLabels:  make(map[string]int),
 		InstructionPointer: 0,
 	}
 }
@@ -361,7 +365,7 @@ func (a *Ambient) LoadByteCodeAsmFromFile(sourcePath string) {
 func (a *Ambient) loadByteCodeAsmFromString(asm string) {
 	scanner := bufio.NewScanner(strings.NewReader(asm))
 	for scanner.Scan() {
-		inst, err := translateByteCodeLineToInstruction(scanner.Text())
+		inst, err := a.translateByteCodeLineToInstruction(scanner.Text())
 		if err == nil {
 			a.Instructions = append(a.Instructions, inst)
 		}
@@ -373,7 +377,7 @@ func (a *Ambient) loadByteCodeAsmFromString(asm string) {
 }
 
 // TODO: Move Instruction to separate file, move this function to instruction.go
-func translateByteCodeLineToInstruction(line string) (common.Instruction, error) {
+func (a *Ambient) translateByteCodeLineToInstruction(line string) (common.Instruction, error) {
 	if len(line) == 0 {
 		return common.NewEnd(), nil
 	}
@@ -382,11 +386,16 @@ func translateByteCodeLineToInstruction(line string) (common.Instruction, error)
 		return common.NewEnd(), errors.New("Comment")
 	}
 
+	if line[0] == ':' {
+		a.Labels[line[1:]] = len(a.Instructions)
+		return common.NewEnd(), errors.New("Label")
+	}
+
 	instructionByDelimiter := strings.Split(line, " ")
 
 	instKind, ok := common.AmbientAsmInstructionType[instructionByDelimiter[0]]
 	if !ok {
-		log.Fatalf("Unknown instruction: %s\n", instructionByDelimiter[0])
+		log.Fatalf("Unknown instruction: [%s]\n", instructionByDelimiter[0])
 	}
 
 	if len(instructionByDelimiter) < 2 {
@@ -394,6 +403,16 @@ func translateByteCodeLineToInstruction(line string) (common.Instruction, error)
 	}
 
 	operand, err := strconv.Atoi(instructionByDelimiter[1])
+
+	if (instKind == common.Jump || instKind == common.JumpIfTrue) && err != nil {
+		if val, ok := a.Labels[instructionByDelimiter[1]]; ok {
+			return common.NewInstruction(instKind, val), nil
+		}
+
+		log.Printf("Unknown label: [%s]\n", instructionByDelimiter[1])
+		a.NotResolvedLabels[instructionByDelimiter[1]] = len(a.Instructions)
+	}
+
 	if err != nil {
 		log.Fatalf("Invalid operand: %s\n", instructionByDelimiter[1])
 	}
