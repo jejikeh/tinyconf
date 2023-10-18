@@ -2,42 +2,37 @@ package vm
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/gob"
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/jejikeh/ambient/common"
 )
 
-type Ambient struct {
+type VirtualMachine struct {
 	Stack              []int
-	Instructions       []common.Instruction
+	Instructions       []Instruction
 	Labels             map[string]int
 	NotResolvedLabels  map[string]int
 	InstructionPointer int
 }
 
-func NewAmbient() *Ambient {
-	return &Ambient{
+func NewVirtualMachine() *VirtualMachine {
+	return &VirtualMachine{
 		Stack:              make([]int, 0),
-		Instructions:       make([]common.Instruction, 0),
+		Instructions:       make([]Instruction, 0),
 		Labels:             make(map[string]int),
 		NotResolvedLabels:  make(map[string]int),
 		InstructionPointer: 0,
 	}
 }
 
-func (a *Ambient) LoadProgram(program []common.Instruction) {
+func (a *VirtualMachine) LoadProgram(program []Instruction) {
 	a.Instructions = program
 }
 
-func (a *Ambient) Run() common.Error {
+func (a *VirtualMachine) Run() common.Error {
 	if a.InstructionPointer < 0 || a.InstructionPointer >= len(a.Instructions) {
 		return common.IllegalInstruction
 	}
@@ -45,7 +40,7 @@ func (a *Ambient) Run() common.Error {
 	instruction := a.Instructions[a.InstructionPointer]
 
 	switch instruction.Type {
-	case common.Push:
+	case Push:
 		// Push a value onto the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -55,7 +50,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = append(a.Stack, instruction.Operand)
 		a.InstructionPointer++
 
-	case common.Duplicate:
+	case Duplicate:
 		// Duplicate the top of the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -73,7 +68,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = append(a.Stack, a.Stack[len(a.Stack)-1-instruction.Operand])
 		a.InstructionPointer++
 
-	case common.Plus:
+	case Plus:
 		// Add the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -90,7 +85,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case common.Minus:
+	case Minus:
 		// Subtract the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -107,7 +102,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case common.Multiply:
+	case Multiply:
 		// Multiply the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -124,7 +119,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case common.Divide:
+	case Divide:
 		// Divide the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -145,7 +140,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case common.Jump:
+	case Jump:
 		// Jump to a new instruction.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -157,7 +152,7 @@ func (a *Ambient) Run() common.Error {
 
 		a.InstructionPointer = instruction.Operand
 
-	case common.JumpIfTrue:
+	case JumpIfTrue:
 		// Jump to a new instruction if the top of the stack is true (1).
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -178,7 +173,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer = instruction.Operand
 
-	case common.Equal:
+	case Equal:
 		// instruction if the top of the stack is equal.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -200,7 +195,7 @@ func (a *Ambient) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case common.End:
+	case End:
 		a.InstructionPointer++
 
 	default:
@@ -210,9 +205,9 @@ func (a *Ambient) Run() common.Error {
 	return common.Ok
 }
 
-func (a *Ambient) Execute(executingLimit int, printCurrentInstruction bool) {
+func (a *VirtualMachine) Execute(executingLimit int, printCurrentInstruction bool) {
 	isInfinite := executingLimit < 0
-	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Type != common.End)) || isInfinite; i++ {
+	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Type != End)) || isInfinite; i++ {
 		err := a.Run()
 		if err != common.Ok {
 			log.Printf("Error: %s\n", err.String())
@@ -226,7 +221,7 @@ func (a *Ambient) Execute(executingLimit int, printCurrentInstruction bool) {
 	}
 }
 
-func (a *Ambient) PrintStack() {
+func (a *VirtualMachine) PrintStack() {
 	fmt.Println("Stack:")
 	if len(a.Stack) == 0 {
 		fmt.Println("	Stack is empty")
@@ -239,7 +234,7 @@ func (a *Ambient) PrintStack() {
 	fmt.Println()
 }
 
-func (a *Ambient) PrintInstructions() {
+func (a *VirtualMachine) PrintInstructions() {
 	fmt.Println("Instructions:")
 	for i, v := range a.Instructions {
 		fmt.Printf("	%d: %s %d\n", i, v.Type.String(), v.Operand)
@@ -248,103 +243,7 @@ func (a *Ambient) PrintInstructions() {
 	fmt.Println()
 }
 
-func (a *Ambient) DumpDisasembleInstructions(s *string) {
-	for _, v := range a.Instructions {
-		instructionTextRepresentation := common.AmbientAsmInstruction[v.Type]
-		if v.Type == common.Plus || v.Type == common.Minus || v.Type == common.Multiply || v.Type == common.Divide || v.Type == common.End {
-			*s += instructionTextRepresentation + "\n"
-			continue
-		}
-
-		instructionTextRepresentation += " " + strconv.Itoa(v.Operand)
-		*s += instructionTextRepresentation + "\n"
-	}
-}
-
-func (a *Ambient) DumpDisasembleInstructionsToFile(outputPath string) {
-	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	f, err := os.Create(outputPath)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	for _, v := range a.Instructions {
-		instructionTextRepresentation := common.AmbientAsmInstruction[v.Type]
-		if v.Type == common.Plus || v.Type == common.Minus || v.Type == common.Multiply || v.Type == common.Divide || v.Type == common.End {
-			f.Write([]byte(instructionTextRepresentation))
-			f.Write([]byte("\n"))
-			continue
-		}
-
-		instructionTextRepresentation += " " + strconv.Itoa(v.Operand)
-		f.Write([]byte(instructionTextRepresentation))
-		f.Write([]byte("\n"))
-	}
-}
-
-func (a *Ambient) SaveProgramToNewFile(outputPath string) {
-	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	f, err := os.Create(outputPath)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	_, err = f.Write(a.serializeInstructions())
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (a *Ambient) LoadProgramFromFile(filepath string) {
-	content, err := os.ReadFile(filepath)
-	if err != nil {
-		fmt.Println("Err")
-	}
-
-	a.LoadProgram(deserializeInstructions(content))
-}
-
-// TODO: Maybe change return type to []byte, error?
-func (a *Ambient) serializeInstructions() []byte {
-	var buff bytes.Buffer
-
-	enc := gob.NewEncoder(&buff)
-	err := enc.Encode(a.Instructions)
-
-	if err != nil {
-		log.Fatal("Error encoding instructions: ", err)
-	}
-
-	return buff.Bytes()
-}
-
-func deserializeInstructions(buff []byte) []common.Instruction {
-	var instructions []common.Instruction
-
-	dec := gob.NewDecoder(bytes.NewBuffer(buff))
-	err := dec.Decode(&instructions)
-	if err != nil {
-		log.Fatal("Error decoding instructions: ", err)
-	}
-
-	return instructions
-}
-
-func (a *Ambient) LoadByteCodeAsmFromFile(sourcePath string) {
+func (a *VirtualMachine) LoadByteCodeAsmFromFile(sourcePath string) {
 	readFile, err := os.Open(sourcePath)
 
 	if err != nil {
@@ -362,7 +261,7 @@ func (a *Ambient) LoadByteCodeAsmFromFile(sourcePath string) {
 	}
 }
 
-func (a *Ambient) loadByteCodeAsmFromString(asm string) {
+func (a *VirtualMachine) loadByteCodeAsmFromString(asm string) {
 	scanner := bufio.NewScanner(strings.NewReader(asm))
 	for scanner.Scan() {
 		inst, err := a.translateByteCodeLineToInstruction(scanner.Text())
@@ -374,48 +273,4 @@ func (a *Ambient) loadByteCodeAsmFromString(asm string) {
 	if err := scanner.Err(); err != nil {
 		log.Fatalf("error occurred while reading ByteCode Asm: %v\n", err)
 	}
-}
-
-// TODO: Move Instruction to separate file, move this function to instruction.go
-func (a *Ambient) translateByteCodeLineToInstruction(line string) (common.Instruction, error) {
-	if len(line) == 0 {
-		return common.NewEnd(), nil
-	}
-
-	if line[0] == '#' {
-		return common.NewEnd(), errors.New("Comment")
-	}
-
-	if line[0] == ':' {
-		a.Labels[line[1:]] = len(a.Instructions)
-		return common.NewEnd(), errors.New("Label")
-	}
-
-	instructionByDelimiter := strings.Split(line, " ")
-
-	instKind, ok := common.AmbientAsmInstructionType[instructionByDelimiter[0]]
-	if !ok {
-		log.Fatalf("Unknown instruction: [%s]\n", instructionByDelimiter[0])
-	}
-
-	if len(instructionByDelimiter) < 2 {
-		return common.NewInstruction(instKind, 0), nil
-	}
-
-	operand, err := strconv.Atoi(instructionByDelimiter[1])
-
-	if (instKind == common.Jump || instKind == common.JumpIfTrue) && err != nil {
-		if val, ok := a.Labels[instructionByDelimiter[1]]; ok {
-			return common.NewInstruction(instKind, val), nil
-		}
-
-		log.Printf("Unknown label: [%s]\n", instructionByDelimiter[1])
-		a.NotResolvedLabels[instructionByDelimiter[1]] = len(a.Instructions)
-	}
-
-	if err != nil {
-		log.Fatalf("Invalid operand: %s\n", instructionByDelimiter[1])
-	}
-
-	return common.NewInstruction(instKind, operand), nil
 }
