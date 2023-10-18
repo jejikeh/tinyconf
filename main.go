@@ -34,7 +34,7 @@ func dissembleBinary(disassembleFlag *bool, source *string, output *string) {
 		return
 	}
 
-	ambient := vm.NewAmbient()
+	ambient := vm.NewVirtualMachine()
 	ambient.LoadProgramFromFile(*source)
 
 	if *output == "" {
@@ -52,7 +52,7 @@ func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
 		return
 	}
 
-	ambient := vm.NewAmbient()
+	ambient := vm.NewVirtualMachine()
 
 	if *binaryFlag {
 		ambient.LoadProgramFromFile(*source)
@@ -75,7 +75,7 @@ func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) 
 		return
 	}
 
-	ambient := vm.NewAmbient()
+	ambient := vm.NewVirtualMachine()
 	ambient.LoadByteCodeAsmFromFile(*source)
 
 	if *debug {
