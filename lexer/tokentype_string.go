@@ -20,11 +20,12 @@ func _() {
 	_ = x[LabelDeclaration-9]
 	_ = x[OperandString-10]
 	_ = x[OperandNumber-11]
+	_ = x[Comment-12]
 }
 
-const _TokenType_name = "SumDivSubMulPushDuplicateJumpJumpIfTrueEqualLabelDeclarationOperandStringOperandNumber"
+const _TokenType_name = "SumDivSubMulPushDuplicateJumpJumpIfTrueEqualLabelDeclarationOperandStringOperandNumberComment"
 
-var _TokenType_index = [...]uint8{0, 3, 6, 9, 12, 16, 25, 29, 39, 44, 60, 73, 86}
+var _TokenType_index = [...]uint8{0, 3, 6, 9, 12, 16, 25, 29, 39, 44, 60, 73, 86, 93}
 
 func (i TokenType) String() string {
 	if i < 0 || i >= TokenType(len(_TokenType_index)-1) {

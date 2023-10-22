@@ -16,3 +16,6 @@ dis_fib_o:
 
 dis_fib:
 	go run . -dis -i $(BINARY_FOLDER)/fib
+
+lex_fib:
+	go run . -lex -i $(EXAMPLE_FOLDER)/fib.ambasm

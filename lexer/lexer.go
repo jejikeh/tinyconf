@@ -2,7 +2,10 @@ package lexer
 
 import (
 	"log"
+	"os"
 	"unicode"
+
+	"github.com/fatih/color"
 )
 
 type Lexer struct {
@@ -13,6 +16,20 @@ type Lexer struct {
 func NewLexer(source string) *Lexer {
 	return &Lexer{
 		Source: []rune(source),
+		Cursor: 0,
+	}
+}
+
+func NewLexerFromFile(filepath string) *Lexer {
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		color.Set(color.FgRed)
+		defer color.Unset()
+		log.Fatalf("Error reading file: [%v]\n", err)
+	}
+
+	return &Lexer{
+		Source: []rune(string(content)),
 		Cursor: 0,
 	}
 }
@@ -41,6 +58,9 @@ func (l *Lexer) Tokenize() []Token {
 			tokens = append(tokens, *token)
 			continue
 		}
+
+		color.Set(color.FgHiRed)
+		defer color.Unset()
 
 		log.Printf("Unknown token:  [%s:%d]", string(l.Source[l.Cursor]), l.Cursor)
 		l.Cursor++
@@ -149,5 +169,15 @@ func (l *Lexer) lexNumberTokens() *Token {
 		Value:    string(token),
 		Kind:     OperandNumber,
 		Location: l.Cursor - 1,
+	}
+}
+
+func PrintDebugTokens(tokens []Token) {
+	log.Println("Tokens:")
+	for i, token := range tokens {
+		log.Printf("[%d] ", i)
+		log.Printf("	Token: [%s]\n", token.Kind.String())
+		log.Printf("	Value: [%s]\n", token.Value)
+		log.Printf("	Location: [%d]\n", token.Location)
 	}
 }

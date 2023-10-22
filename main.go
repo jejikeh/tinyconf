@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/jejikeh/ambient/lexer"
 	"github.com/jejikeh/ambient/vm"
@@ -29,7 +28,7 @@ func main() {
 	defer runBinary(runCommand, binaryFlag, sourcePath, debugFlag)
 
 	// Lexer Command
-	lexerFlag := flag.Bool("lexer", false, "Lexer file")
+	lexerFlag := flag.Bool("lex", false, "Lexer file")
 	defer lexerFile(lexerFlag, sourcePath)
 
 	flag.Parse()
@@ -96,18 +95,7 @@ func lexerFile(lexerFlag *bool, source *string) {
 		return
 	}
 
-	content, err := os.ReadFile(*source)
-	if err != nil {
-		fmt.Println("Err")
-	}
-
-	l := lexer.NewLexer(string(content))
+	l := lexer.NewLexerFromFile(*source)
 	tokens := l.Tokenize()
-	for _, token := range tokens {
-		fmt.Println("{")
-		fmt.Printf("	TokenType: [%s]\n", token.Kind.String())
-		fmt.Printf("	Value: [%s]\n", token.Value)
-		fmt.Printf("	Location: [%d]\n", token.Location)
-		fmt.Println("}")
-	}
+	lexer.PrintDebugTokens(tokens)
 }

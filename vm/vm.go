@@ -1,32 +1,12 @@
 package vm
 
 import (
-	"bufio"
 	"fmt"
 	"log"
-	"os"
-	"strings"
 
+	"github.com/fatih/color"
 	"github.com/jejikeh/ambient/common"
 )
-
-type VirtualMachine struct {
-	Stack              []int
-	Instructions       []Instruction
-	Labels             map[string]int
-	NotResolvedLabels  map[string]int
-	InstructionPointer int
-}
-
-func NewVirtualMachine() *VirtualMachine {
-	return &VirtualMachine{
-		Stack:              make([]int, 0),
-		Instructions:       make([]Instruction, 0),
-		Labels:             make(map[string]int),
-		NotResolvedLabels:  make(map[string]int),
-		InstructionPointer: 0,
-	}
-}
 
 func (a *VirtualMachine) LoadProgram(program []Instruction) {
 	a.Instructions = program
@@ -210,6 +190,9 @@ func (a *VirtualMachine) Execute(executingLimit int, printCurrentInstruction boo
 	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Type != End)) || isInfinite; i++ {
 		err := a.Run()
 		if err != common.Ok {
+			color.Set(color.FgHiRed)
+			defer color.Unset()
+
 			log.Printf("Error: %s\n", err.String())
 			a.PrintStack()
 			panic(1)
@@ -241,36 +224,4 @@ func (a *VirtualMachine) PrintInstructions() {
 	}
 
 	fmt.Println()
-}
-
-func (a *VirtualMachine) LoadByteCodeAsmFromFile(sourcePath string) {
-	readFile, err := os.Open(sourcePath)
-
-	if err != nil {
-		log.Fatalf("error opening file: %v\n", err)
-	}
-
-	defer readFile.Close()
-
-	fileScanner := bufio.NewScanner(readFile)
-
-	fileScanner.Split(bufio.ScanLines)
-
-	for fileScanner.Scan() {
-		a.loadByteCodeAsmFromString(fileScanner.Text())
-	}
-}
-
-func (a *VirtualMachine) loadByteCodeAsmFromString(asm string) {
-	scanner := bufio.NewScanner(strings.NewReader(asm))
-	for scanner.Scan() {
-		inst, err := a.translateByteCodeLineToInstruction(scanner.Text())
-		if err == nil {
-			a.Instructions = append(a.Instructions, inst)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("error occurred while reading ByteCode Asm: %v\n", err)
-	}
 }
