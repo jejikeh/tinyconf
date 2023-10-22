@@ -1,15 +1,6 @@
 package vm
 
-import (
-	"bufio"
-	"log"
-	"os"
-	"strconv"
-
-	"github.com/fatih/color"
-	"github.com/jejikeh/ambient/lexer"
-)
-
+/*
 func (a *VirtualMachine) LoadByteCodeAsmFromFile(sourcePath string) {
 	readFile, err := os.Open(sourcePath)
 
@@ -148,3 +139,4 @@ func (a *VirtualMachine) loadByteCodeAsmFromString(asm []lexer.Token) {
 		}
 	}
 }
+*/

@@ -62,7 +62,7 @@ func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
 	if *binaryFlag {
 		ambient.LoadProgramFromFile(*source)
 	} else {
-		ambient.LoadByteCodeAsmFromFile(*source)
+		// ambient.LoadByteCodeAsmFromFile(*source)
 	}
 
 	if *debug {
@@ -81,7 +81,7 @@ func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) 
 	}
 
 	ambient := vm.NewVirtualMachine()
-	ambient.LoadByteCodeAsmFromFile(*source)
+	// ambient.LoadByteCodeAsmFromFile(*source)
 
 	if *debug {
 		ambient.PrintInstructions()
