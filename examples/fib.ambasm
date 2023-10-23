@@ -1,7 +1,0 @@
-psh 0
-hello
-psh 1
-dupl 1
-dupl 1
-sum
-jmp 2
