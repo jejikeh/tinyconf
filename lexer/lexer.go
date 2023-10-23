@@ -30,7 +30,81 @@ type Lexer struct {
 }
 
 func NewLexer(source string) *Lexer {
-	return &Lexer{}
+	return &Lexer{InputSource: []rune(source)}
+}
+
+func NewLexerFromFile(filepath string) *Lexer {
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		color.Set(color.FgHiRed)
+		defer color.Unset()
+		log.Fatalf("Error reading file: [%v]\n", err)
+	}
+
+	return &Lexer{
+		InputSource: []rune(string(content)),
+	}
+}
+
+func (l *Lexer) Tokenize() []token.Token {
+	tokens := []token.Token{}
+
+	for {
+		t, err := l.composeNewToken()
+		if err != nil {
+			color.Set(color.FgHiRed)
+			defer color.Unset()
+
+			log.Fatalf("Error: %s\n", err)
+		}
+
+		tokens = append(tokens, t)
+
+		if t.Kind == token.EndOfLine {
+			break
+		}
+	}
+
+	tokens = l.resolveLabelIdentifierDeclaration(tokens)
+
+	return tokens
+}
+
+func PrintDebugTokens(tokens []token.Token) {
+	log.Println("Tokens:")
+	for i, token := range tokens {
+		log.Printf("[%d] ", i)
+		logDebugToken(&token)
+	}
+}
+
+// @todo: refactor this please
+func (l *Lexer) resolveLabelIdentifierDeclaration(tokens []token.Token) []token.Token {
+	labels := make(map[string]token.Token)
+	newЕokens := []token.Token{}
+
+	// @todo: remove two loops
+	for _, t := range tokens {
+		if t.Kind == token.Label {
+			labels[t.Name] = t
+		}
+	}
+
+	for _, t := range tokens {
+		if t.Kind == token.Identifier {
+			if label, ok := labels[t.Name]; ok {
+				t.IntegerValue = label.LineStart
+			} else {
+				color.Set(color.FgHiRed)
+				defer color.Unset()
+				log.Printf("Label [%s] (%d:%d) not found!\n", t.Name, t.LineStart, t.LineEnd)
+			}
+		}
+
+		newЕokens = append(newЕokens, t)
+	}
+
+	return newЕokens
 }
 
 // eatCharacter just increments the InputCursor by 1
@@ -54,10 +128,28 @@ func (l *Lexer) eatCharacter() {
 
 func (l *Lexer) peekNextCharacter() (rune, error) {
 	if l.InputCursor >= len(l.InputSource) {
-		return -1, fmt.Errorf("unexpected end of file")
+		return -1, fmt.Errorf(`unexpected end of file!
+		Current cursor: [%d]
+		Source length: [%d]
+		Current line: [%d]
+		Current column: [%d]`, l.InputCursor, len(l.InputSource), l.CurrentLineNumber, l.CurrentLineCharacterIndex)
 	}
 
 	return l.InputSource[l.InputCursor], nil
+}
+
+func (l *Lexer) peekNextCharacterIgnoringRunes(r rune) (rune, error) {
+	c, err := l.peekNextCharacter()
+	if err != nil {
+		return -1, err
+	}
+
+	if c == r {
+		l.eatCharacter()
+		return l.peekNextCharacterIgnoringRunes(r)
+	}
+
+	return c, nil
 }
 
 func (l *Lexer) getDecimalDigit() (int, error) {
@@ -98,10 +190,14 @@ func (l *Lexer) parseIndentifier(t *token.Token) error {
 		return err
 	}
 
-	if token.IsPartOfIdentifier(c) {
+	if token.IsStartOfIdentifier(c) {
 		for {
 			c, err = l.peekNextCharacter()
 			if err != nil {
+				if strBuilder.Len() > 0 {
+					break
+				}
+
 				return err
 			}
 
@@ -126,7 +222,9 @@ func (l *Lexer) parseIndentifier(t *token.Token) error {
 func (l *Lexer) makeIdentifierOrKeyword() (token.Token, error) {
 	// @todo: get_unused_keyword()
 	t := &token.Token{}
-	t.Kind = token.Indentifier
+	t.Kind = token.Identifier
+
+	l.setStartOfToken(t)
 
 	err := l.parseIndentifier(t)
 	if err != nil {
@@ -143,6 +241,8 @@ func (l *Lexer) makeNumber() (token.Token, error) {
 	t := &token.Token{}
 	t.Kind = token.Number
 
+	l.setStartOfToken(t)
+
 	strBuilder := strings.Builder{}
 
 	c, err := l.peekNextCharacter()
@@ -155,6 +255,10 @@ func (l *Lexer) makeNumber() (token.Token, error) {
 		for {
 			c, err = l.peekNextCharacter()
 			if err != nil {
+				if strBuilder.Len() > 0 {
+					break
+				}
+
 				return *t, err
 			}
 
@@ -167,67 +271,87 @@ func (l *Lexer) makeNumber() (token.Token, error) {
 			break
 		}
 	} else {
-		return *t, fmt.Errorf("expected start of number, but got unexpected character: [%v]", c)
+		return *t, fmt.Errorf("expected start of number, but got unexpected character: [%s] (%d:%d)", string(c), l.CurrentLineNumber, l.CurrentLineCharacterIndex)
 	}
 
-	num, err := strconv.Atoi(strBuilder.String())
+	t.SetIndentValue(strBuilder.String())
+	num, err := strconv.Atoi(t.Name)
 	if err != nil {
 		return *t, err
 	}
 
 	t.IntegerValue = num
+	l.setEndOfToken(t)
 
 	return *t, nil
 }
 
+// @todo: test all the error cases
 func (l *Lexer) eatInputDueToBlockComment() error {
-	commentDepth := 1
+	c, err := l.peekNextCharacter()
+	if err != nil {
+		return err
+	}
 
-	for commentDepth > 0 {
-		c, err := l.peekNextCharacter()
+	if c == '/' {
+		l.eatCharacter()
+		c, err = l.peekNextCharacter()
 		if err != nil {
 			return err
 		}
 
 		if c == '/' {
-			l.eatCharacter()
-			c, err = l.peekNextCharacter()
-			if err != nil {
-				return err
-			}
-
-			if c == '*' {
-				l.eatCharacter()
-				commentDepth++
-			}
-		} else if c == '*' {
-			l.eatCharacter()
-
-			c, err = l.peekNextCharacter()
-			if err != nil {
-				return err
-			}
-
-			if c == '/' {
-				l.eatCharacter()
-				commentDepth--
-			}
-		} else {
-			l.eatCharacter()
+			l.eatUntilNewLine()
+			return nil
 		}
+		if c == '*' {
+			err = l.eatUntilCharacterCombo('*', '/')
+			if err != nil {
+				return fmt.Errorf("expected end of block comment, but got end of file: [%s] (%d:%d)", string(c), l.CurrentLineNumber, l.CurrentLineCharacterIndex)
+			}
+
+			return nil
+		}
+
+		return fmt.Errorf("expected start of block comment, but got unexpected character: [%s] (%d:%d)", string(c), l.CurrentLineNumber, l.CurrentLineCharacterIndex)
 	}
 
-	return nil
+	return fmt.Errorf("expected start of block comment, but got unexpected character: [%s] (%d:%d)", string(c), l.CurrentLineNumber, l.CurrentLineCharacterIndex)
+}
+
+func (l *Lexer) eatUntilCharacterCombo(r1, r2 rune) error {
+	for {
+		c, err := l.peekNextCharacter()
+		if err != nil {
+			return err
+		}
+
+		if c == r1 {
+			l.eatCharacter()
+			c, err = l.peekNextCharacter()
+			if err != nil {
+				return err
+			}
+
+			if c == r2 {
+				l.eatCharacter()
+				return nil
+			}
+		}
+
+		l.eatCharacter()
+	}
 }
 
 func (l *Lexer) eatUntilNewLine() {
 	for {
 		c, err := l.peekNextCharacter()
 		if err != nil {
-			return
+			break
 		}
 
 		if c == '\n' {
+			l.eatCharacter()
 			return
 		}
 
@@ -237,28 +361,50 @@ func (l *Lexer) eatUntilNewLine() {
 
 func (l *Lexer) composeNewToken() (token.Token, error) {
 	t := &token.Token{}
+	t.Kind = token.EndOfLine
 
 	for {
 		c, err := l.peekNextCharacter()
 		if err != nil {
-			if c == -1 {
-				t.Kind = token.EndOfLine
-				return *t, nil
-			}
-
-			return *t, err
+			break
 		}
 
 		for token.IsWhitespace(c) {
 			l.eatCharacter()
 			c, err = l.peekNextCharacter()
 			if err != nil {
+				return *t, nil
+			}
+		}
+
+		if c == '/' {
+			err = l.eatInputDueToBlockComment()
+			if err != nil {
 				return *t, err
+			}
+
+			continue
+		}
+
+		if c == ':' {
+			l.eatCharacter()
+			c, err = l.peekNextCharacterIgnoringRunes(' ')
+			if err != nil {
+				return *t, err
+			}
+
+			if token.IsStartOfIdentifier(c) {
+				t, err := l.makeIdentifierOrKeyword()
+				if err != nil {
+					return t, err
+				}
+
+				t.Kind = token.Label
+				return t, nil
 			}
 		}
 
 		if token.IsStartOfIdentifier(c) {
-			l.setStartOfToken(t)
 			return l.makeIdentifierOrKeyword()
 		}
 
@@ -268,47 +414,8 @@ func (l *Lexer) composeNewToken() (token.Token, error) {
 			return *t, fmt.Errorf("unexpected character: [%v] (%d:%d)", string(c), l.CurrentLineNumber, l.CurrentLineCharacterIndex)
 		}
 	}
-}
 
-func NewLexerFromFile(filepath string) *Lexer {
-	content, err := os.ReadFile(filepath)
-	if err != nil {
-		color.Set(color.FgRed)
-		defer color.Unset()
-		log.Fatalf("Error reading file: [%v]\n", err)
-	}
-
-	return &Lexer{
-		InputSource: []rune(string(content)),
-	}
-}
-
-func (l *Lexer) Tokenize() []token.Token {
-	tokens := []token.Token{}
-
-	for l.InputCursor < len(l.InputSource) {
-		t, err := l.composeNewToken()
-		if err != nil {
-			color.Set(color.FgHiRed)
-			defer color.Unset()
-
-			log.Printf("Error: %s\n", err)
-		}
-
-		log.Printf("Token: [%s]\n", t.Kind)
-
-		tokens = append(tokens, t)
-	}
-
-	return tokens
-}
-
-func PrintDebugTokens(tokens []token.Token) {
-	log.Println("Tokens:")
-	for i, token := range tokens {
-		log.Printf("[%d] ", i)
-		logDebugToken(&token)
-	}
+	return *t, nil
 }
 
 func logDebugToken(t *token.Token) {

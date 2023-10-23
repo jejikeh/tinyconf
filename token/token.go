@@ -53,8 +53,8 @@ const (
 
 	EndOfLine = "END_OF_FILE"
 
-	Indentifier = "INDENTIFIER"
-	Number      = "NUMBER"
+	Identifier = "IDENTIFIER"
+	Number     = "NUMBER"
 )
 
 var keywords = map[string]Kind{
@@ -77,7 +77,7 @@ func (t *Token) DetectMyKind() {
 		return
 	}
 
-	t.Kind = Indentifier
+	t.Kind = Identifier
 }
 
 func IsStartOfIdentifier(c rune) bool {
