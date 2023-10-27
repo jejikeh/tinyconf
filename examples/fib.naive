@@ -1,8 +1,5 @@
-// hello world
-psh 1 
 psh 1
-:loop
-dupl 1 
-dupl 1
-sum
-jmp loop
+jif hello
+psh 1
+:hello
+psh 1

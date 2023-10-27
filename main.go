@@ -41,11 +41,11 @@ func dissembleBinary(disassembleFlag *bool, source *string, output *string) {
 	l := lexer.NewLexerFromBinary(*source)
 
 	if *output == "" {
-		lexer.PrintDebugTokens(l.Tokens)
+		l.DebugTokensToNaive()
 		return
 	}
 
-	l.DumpTokensToBinary(*output)
+	l.DumpTokensToFile(*output)
 }
 
 func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
@@ -77,10 +77,10 @@ func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) 
 	}
 
 	l := lexer.NewLexerFromSource(*source)
-	t := l.Tokenize()
+	l.Tokens = l.Tokenize()
 
 	v := vm.NewVirtualMachine()
-	v.LoadProgram(t)
+	v.LoadProgram(l.Tokens)
 
 	if *debug {
 		v.PrintInstructions()

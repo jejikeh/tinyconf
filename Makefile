@@ -12,10 +12,13 @@ build_fib:
 	go run . -build -i $(EXAMPLE_FOLDER)/fib.naive -o $(BINARY_FOLDER)/fib -debug
 
 dis_fib_o:
-	go run . -dis -i $(BINARY_FOLDER)/fib -o $(DIS_FOLDER)/fib
+	go run . -dis -i $(BINARY_FOLDER)/fib -o $(DIS_FOLDER)/fib.naive
 
 dis_fib:
 	go run . -dis -i $(BINARY_FOLDER)/fib
 
 lex_fib:
 	go run . -lex -i $(EXAMPLE_FOLDER)/fib.naive
+
+tests:
+	go test ./...

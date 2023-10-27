@@ -159,7 +159,7 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		1. JMP 2
 		// 		2. PRINT_STACK: [0, 1]
 		if a.Instructions[a.InstructionPointer+1].IntegerValue < 0 || a.Instructions[a.InstructionPointer+1].IntegerValue >= len(a.Instructions) {
-			return common.IllegalInstruction
+			return common.IllegalInstructionAccess
 		}
 
 		a.InstructionPointer = a.Instructions[a.InstructionPointer+1].IntegerValue
@@ -182,8 +182,8 @@ func (a *VirtualMachine) Run() common.Error {
 			break
 		}
 
-		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer = a.Instructions[a.InstructionPointer+1].IntegerValue
+
 	case token.Equal:
 		// instruction if the top of the stack is equal.
 		// EXAMPLE:

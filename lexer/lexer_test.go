@@ -20,9 +20,9 @@ func TestResolveLabelIdentifierDeclaration(t *testing.T) {
 		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "z"}}},
 	}
 	expected := []token.Token{
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "x"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "y"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "z"}}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "x"}, IntegerValue: -1}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "y"}, IntegerValue: -1}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "z"}, IntegerValue: -1}},
 	}
 	result := lexer.resolveLabelIdentifierDeclaration(tokens)
 	assert.Equal(t, expected, result, "Failed test case 1")
@@ -39,12 +39,12 @@ func TestResolveLabelIdentifierDeclaration(t *testing.T) {
 	}
 	expected = []token.Token{
 		{Kind: token.Label, LineStart: 12, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label1"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "y"}}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "y"}, IntegerValue: -1}},
 		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label1"}, IntegerValue: 0}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "z"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "x"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label2"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "h"}}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "z"}, IntegerValue: -1}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "x"}, IntegerValue: -1}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label2"}, IntegerValue: -1}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "h"}, IntegerValue: -1}},
 	}
 	result = lexer.resolveLabelIdentifierDeclaration(tokens)
 	assert.Equal(t, expected, result, "Failed test case 2")

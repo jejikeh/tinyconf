@@ -1,6 +1,7 @@
 package token
 
 import (
+	"fmt"
 	"unicode"
 
 	"github.com/jejikeh/ambient/common"
@@ -69,6 +70,18 @@ var keywords = map[string]Kind{
 	"eq":   Equal,
 }
 
+var keywordsReverse = map[Kind]string{
+	Push:       "psh",
+	Duplicate:  "dupl",
+	Sum:        "sum",
+	Divide:     "div",
+	Subtract:   "sub",
+	Multiply:   "mul",
+	Jump:       "jmp",
+	JumpIfTrue: "jif",
+	Equal:      "eq",
+}
+
 func (t *Token) DetectMyKind() {
 	value := t.IndentValue.Name
 
@@ -78,6 +91,26 @@ func (t *Token) DetectMyKind() {
 	}
 
 	t.Kind = Identifier
+}
+
+func (t *Token) DetectMyString() string {
+	if kind, ok := keywordsReverse[t.Kind]; ok {
+		return kind
+	}
+
+	if t.Kind == Identifier {
+		if t.IntegerValue != 0 {
+			return fmt.Sprint(t.IntegerValue)
+		}
+
+		return t.StringValue
+	}
+
+	if t.Kind == Number {
+		return fmt.Sprint(t.IntegerValue)
+	}
+
+	return ""
 }
 
 func IsStartOfIdentifier(c rune) bool {

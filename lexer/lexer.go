@@ -78,9 +78,33 @@ func (l *Lexer) DumpTokensToBinary(outputPath string) {
 		log.Fatal("Error encoding instructions: ", err)
 	}
 
+	log.Printf("Dumped %d tokens to [%s]\n", len(l.Tokens), outputPath)
+
 	_, err = f.Write(buff.Bytes())
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func (l *Lexer) DumpTokensToFile(outputPath string) {
+	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Create(outputPath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	for _, t := range l.Tokens {
+		_, err := f.Write([]byte(t.DetectMyString() + "\n"))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -485,4 +509,10 @@ func logDebugToken(t *token.Token) {
 	log.Printf("		[Indent]:\n")
 	log.Printf("			Value: [%s]\n", t.Name)
 	log.Printf("			Hash: [%d]\n", t.Hash)
+}
+
+func (l *Lexer) DebugTokensToNaive() {
+	for _, t := range l.Tokens {
+		log.Print(t.DetectMyString() + "\n")
+	}
 }
