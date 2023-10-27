@@ -76,13 +76,17 @@ func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) 
 		return
 	}
 
+	l := lexer.NewLexerFromSource(*source)
+	t := l.Tokenize()
+
 	v := vm.NewVirtualMachine()
-	v.LoadNaiveFromSourceFile(*source)
+	v.LoadProgram(t)
 
 	if *debug {
 		v.PrintInstructions()
 	}
 
+	l.DumpTokensToBinary(*output)
 }
 
 func lexerFile(lexerFlag *bool, source *string) {
