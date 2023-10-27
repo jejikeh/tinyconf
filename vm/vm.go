@@ -6,9 +6,41 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jejikeh/ambient/common"
+	"github.com/jejikeh/ambient/lexer"
+	"github.com/jejikeh/ambient/token"
 )
 
-func (a *VirtualMachine) LoadProgram(program []Instruction) {
+type VirtualMachine struct {
+	Stack              []int
+	Instructions       []token.Token
+	Labels             map[string]int
+	NotResolvedLabels  map[string]int
+	InstructionPointer int
+}
+
+func NewVirtualMachine() *VirtualMachine {
+	return &VirtualMachine{
+		Stack:              make([]int, 0),
+		Instructions:       make([]token.Token, 0),
+		Labels:             make(map[string]int),
+		NotResolvedLabels:  make(map[string]int),
+		InstructionPointer: 0,
+	}
+}
+
+func (a *VirtualMachine) LoadNaiveFromSourceFile(sourcePath string) {
+	// TODO(jejikeh): fix this allocation
+	l := lexer.NewLexerFromSource(sourcePath)
+	a.LoadProgram(l.Tokenize())
+}
+
+func (a *VirtualMachine) LoadNaiveFromSourceBinary(sourcePath string) {
+	// TODO(jejikeh): fix this allocation
+	l := lexer.NewLexerFromBinary(sourcePath)
+	a.LoadProgram(l.Tokens)
+}
+
+func (a *VirtualMachine) LoadProgram(program []token.Token) {
 	a.Instructions = program
 }
 
@@ -19,42 +51,42 @@ func (a *VirtualMachine) Run() common.Error {
 
 	instruction := a.Instructions[a.InstructionPointer]
 
-	switch instruction.Type {
-	case Push:
+	switch instruction.Kind {
+	case token.Push:
 		// Push a value onto the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
 		// 		1. PSH 1
 		//		2. PRINT_STACK: [0, 1, 1]
 
-		a.Stack = append(a.Stack, instruction.Operand)
+		a.Stack = append(a.Stack, a.Instructions[a.InstructionPointer+1].IntegerValue)
 		a.InstructionPointer++
 
-	case Duplicate:
+	case token.Duplicate:
 		// Duplicate the top of the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
 		// 		1. DPLC 0
 		//		2. PRINT_STACK: [0, 1, 0]
 
-		if len(a.Stack)-instruction.Operand <= 0 {
+		if len(a.Stack)-a.Instructions[a.InstructionPointer+1].IntegerValue <= 0 {
 			return common.StackUnderflow
 		}
 
-		if instruction.Operand < 0 {
+		if instruction.IntegerValue < 0 {
 			return common.IllegalInstruction
 		}
 
-		a.Stack = append(a.Stack, a.Stack[len(a.Stack)-1-instruction.Operand])
+		a.Stack = append(a.Stack, a.Stack[len(a.Stack)-1-a.Instructions[a.InstructionPointer+1].IntegerValue])
 		a.InstructionPointer++
 
-	case Plus:
+	case token.Sum:
 		// Add the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
 		// 		1. PSH 1
 		// 		2. PSH 1
-		// 		3. ADD
+		// 		3. SUM
 		//		4. PRINT_STACK: [0, 1, 2]
 
 		if len(a.Stack) < 2 {
@@ -65,7 +97,7 @@ func (a *VirtualMachine) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case Minus:
+	case token.Subtract:
 		// Subtract the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -82,7 +114,7 @@ func (a *VirtualMachine) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case Multiply:
+	case token.Multiply:
 		// Multiply the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -99,7 +131,7 @@ func (a *VirtualMachine) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case Divide:
+	case token.Divide:
 		// Divide the top two values on the stack.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -120,19 +152,19 @@ func (a *VirtualMachine) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case Jump:
+	case token.Jump:
 		// Jump to a new instruction.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
 		// 		1. JMP 2
 		// 		2. PRINT_STACK: [0, 1]
-		if instruction.Operand < 0 || instruction.Operand >= len(a.Instructions) {
+		if a.Instructions[a.InstructionPointer+1].IntegerValue < 0 || a.Instructions[a.InstructionPointer+1].IntegerValue >= len(a.Instructions) {
 			return common.IllegalInstruction
 		}
 
-		a.InstructionPointer = instruction.Operand
+		a.InstructionPointer = a.Instructions[a.InstructionPointer+1].IntegerValue
 
-	case JumpIfTrue:
+	case token.JumpIfTrue:
 		// Jump to a new instruction if the top of the stack is true (1).
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -151,9 +183,8 @@ func (a *VirtualMachine) Run() common.Error {
 		}
 
 		a.Stack = a.Stack[:len(a.Stack)-1]
-		a.InstructionPointer = instruction.Operand
-
-	case Equal:
+		a.InstructionPointer = a.Instructions[a.InstructionPointer+1].IntegerValue
+	case token.Equal:
 		// instruction if the top of the stack is equal.
 		// EXAMPLE:
 		// 		0. PRINT_STACK: [0, 1]
@@ -175,11 +206,9 @@ func (a *VirtualMachine) Run() common.Error {
 		a.Stack = a.Stack[:len(a.Stack)-1]
 		a.InstructionPointer++
 
-	case End:
-		a.InstructionPointer++
-
 	default:
-		return common.IllegalInstruction
+		log.Printf("Unknown instruction: [%s]\n", instruction.Kind)
+		a.InstructionPointer++
 	}
 
 	return common.Ok
@@ -187,7 +216,7 @@ func (a *VirtualMachine) Run() common.Error {
 
 func (a *VirtualMachine) Execute(executingLimit int, printCurrentInstruction bool) {
 	isInfinite := executingLimit < 0
-	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Type != End)) || isInfinite; i++ {
+	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Kind != token.EndOfLine)) || isInfinite; i++ {
 		err := a.Run()
 		if err != common.Ok {
 			color.Set(color.FgHiRed)
@@ -199,7 +228,7 @@ func (a *VirtualMachine) Execute(executingLimit int, printCurrentInstruction boo
 		}
 
 		if printCurrentInstruction {
-			fmt.Printf("[%d] Current pointer -> [%d: %s]\n", i, a.InstructionPointer, a.Instructions[a.InstructionPointer].Type.String())
+			log.Printf("[%d] Current pointer -> [%d: %s]\n", i, a.InstructionPointer, a.Instructions[a.InstructionPointer].Kind)
 		}
 	}
 }
@@ -220,7 +249,7 @@ func (a *VirtualMachine) PrintStack() {
 func (a *VirtualMachine) PrintInstructions() {
 	fmt.Println("Instructions:")
 	for i, v := range a.Instructions {
-		fmt.Printf("	%d: %s %d\n", i, v.Type.String(), v.Operand)
+		fmt.Printf("	%d: %s %d\n", i, v.Kind, v.IntegerValue)
 	}
 
 	fmt.Println()

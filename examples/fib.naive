@@ -1,8 +1,8 @@
-// this is test of labels */
-psh 0
+// hello world
+psh 1 
 psh 1
 :loop
 dupl 1 
 dupl 1
-sum 
+sum
 jmp loop

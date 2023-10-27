@@ -40,7 +40,7 @@ func TestResolveLabelIdentifierDeclaration(t *testing.T) {
 	expected = []token.Token{
 		{Kind: token.Label, LineStart: 12, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label1"}}},
 		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "y"}}},
-		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label1"}, IntegerValue: 12}},
+		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label1"}, IntegerValue: 0}},
 		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "z"}}},
 		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "x"}}},
 		{Kind: token.Identifier, TokenValue: token.TokenValue{IndentValue: token.IndentValue{Name: "label2"}}},

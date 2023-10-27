@@ -1,9 +1,12 @@
 package lexer
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -33,7 +36,7 @@ func NewLexer(source string) *Lexer {
 	return &Lexer{InputSource: []rune(source)}
 }
 
-func NewLexerFromFile(filepath string) *Lexer {
+func NewLexerFromSource(filepath string) *Lexer {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
 		color.Set(color.FgHiRed)
@@ -44,6 +47,58 @@ func NewLexerFromFile(filepath string) *Lexer {
 	return &Lexer{
 		InputSource: []rune(string(content)),
 	}
+}
+
+func NewLexerFromBinary(filepath string) *Lexer {
+	return &Lexer{
+		Tokens: loadFromBinary(filepath),
+	}
+}
+
+func (l *Lexer) DumpTokensToBinary(outputPath string) {
+	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Create(outputPath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	var buff bytes.Buffer
+
+	enc := gob.NewEncoder(&buff)
+	err = enc.Encode(l.Tokens)
+
+	if err != nil {
+		log.Fatal("Error encoding instructions: ", err)
+	}
+
+	_, err = f.Write(buff.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func loadFromBinary(sourcePath string) []token.Token {
+	var tokens []token.Token
+
+	content, err := os.ReadFile(sourcePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dec := gob.NewDecoder(bytes.NewBuffer(content))
+	err = dec.Decode(&tokens)
+	if err != nil {
+		log.Fatal("Error decoding instructions: ", err)
+	}
+
+	return tokens
 }
 
 func (l *Lexer) Tokenize() []token.Token {
@@ -80,31 +135,32 @@ func PrintDebugTokens(tokens []token.Token) {
 
 // @todo: refactor this please
 func (l *Lexer) resolveLabelIdentifierDeclaration(tokens []token.Token) []token.Token {
-	labels := make(map[string]token.Token)
-	newЕokens := []token.Token{}
+	labelIndexs := make(map[string]int)
+	newTokens := []token.Token{}
 
 	// @todo: remove two loops
-	for _, t := range tokens {
+	for i, t := range tokens {
 		if t.Kind == token.Label {
-			labels[t.Name] = t
+			labelIndexs[t.Name] = i
 		}
 	}
 
 	for _, t := range tokens {
 		if t.Kind == token.Identifier {
-			if label, ok := labels[t.Name]; ok {
-				t.IntegerValue = label.LineStart
+			if label, ok := labelIndexs[t.Name]; ok {
+				t.IntegerValue = label
 			} else {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
-				log.Printf("Label [%s] (%d:%d) not found!\n", t.Name, t.LineStart, t.LineEnd)
+				log.Printf("Label [%s] (%d:%d) not found! Default to -1\n", t.Name, t.LineStart, t.LineEnd)
+				t.IntegerValue = -1
 			}
 		}
 
-		newЕokens = append(newЕokens, t)
+		newTokens = append(newTokens, t)
 	}
 
-	return newЕokens
+	return newTokens
 }
 
 // eatCharacter just increments the InputCursor by 1
@@ -430,147 +486,3 @@ func logDebugToken(t *token.Token) {
 	log.Printf("			Value: [%s]\n", t.Name)
 	log.Printf("			Hash: [%d]\n", t.Hash)
 }
-
-// v1 lexer :(
-/*
-
-
-func (l *Lexer) Tokenize() []Token {
-	tokens := []Token{}
-	token := &Token{}
-
-	for l.Cursor < len(l.Source) {
-		l.lexWhitespace()
-
-		token = l.lexSyntaxToken()
-		if token != nil {
-			tokens = append(tokens, *token)
-			continue
-		}
-
-		token = l.lexOperandTokens()
-		if token != nil {
-			tokens = append(tokens, *token)
-			continue
-		}
-
-		token = l.lexNumberTokens()
-		if token != nil {
-			tokens = append(tokens, *token)
-			continue
-		}
-
-		color.Set(color.FgHiRed)
-		defer color.Unset()
-
-		log.Printf("Unknown token:  [%s:%d]", string(l.Source[l.Cursor]), l.Cursor)
-		l.Cursor++
-	}
-
-	return tokens
-}
-
-func (l *Lexer) lexWhitespace() *Token {
-	for l.Cursor < len(l.Source) {
-		symbol := l.Source[l.Cursor]
-		if unicode.IsSpace(symbol) {
-			l.Cursor++
-			continue
-		}
-
-		break
-	}
-
-	return nil
-}
-
-func (l *Lexer) lexSyntaxToken() *Token {
-	input := ""
-	save_cursor := l.Cursor
-
-	for l.Cursor < len(l.Source) && !unicode.IsSpace(l.Source[l.Cursor]) {
-		input += string(l.Source[l.Cursor])
-		l.Cursor++
-	}
-
-	// NOTE(jejikeh): If we find a keyword, then maybe we can wait until space. In case we have a keywords
-	// which have similar spelling with other keywords.
-	if t, ok := Keywords[input]; ok {
-		l.Cursor++
-		return &Token{
-			Value:    input,
-			Kind:     t,
-			Location: save_cursor,
-		}
-	}
-
-	if t, ok := Keywords[string(input[0])]; ok {
-		if t == Comment {
-			return &Token{
-				Value:    input,
-				Kind:     t,
-				Location: save_cursor,
-			}
-		}
-	}
-
-	l.Cursor = save_cursor
-	return nil
-}
-
-func (l *Lexer) lexOperandTokens() *Token {
-	token := []rune{}
-	save_cursor := l.Cursor
-
-	for l.Cursor < len(l.Source) && !unicode.IsSpace(l.Source[l.Cursor]) {
-		symbol := l.Source[l.Cursor]
-		if unicode.IsLetter(symbol) || (len(token) != 0 && unicode.IsDigit(symbol)) {
-			token = append(token, symbol)
-			l.Cursor++
-			continue
-		}
-
-		break
-	}
-
-	if len(token) == 0 {
-		l.Cursor = save_cursor
-		return nil
-	}
-
-	return &Token{
-		Value:    string(token),
-		Kind:     OperandString,
-		Location: save_cursor,
-	}
-}
-
-// NOTE(jejikeh): for now we have only operands. Maybe just for lexing its okay.
-func (l *Lexer) lexNumberTokens() *Token {
-	token := []rune{}
-	save_cursor := l.Cursor
-
-	for l.Cursor < len(l.Source) && !unicode.IsSpace(l.Source[l.Cursor]) {
-		symbol := l.Source[l.Cursor]
-		if unicode.IsDigit(symbol) {
-			token = append(token, symbol)
-			l.Cursor++
-			continue
-		}
-
-		break
-	}
-
-	if len(token) == 0 {
-		l.Cursor = save_cursor
-		return nil
-	}
-
-	return &Token{
-		Value:    string(token),
-		Kind:     OperandNumber,
-		Location: l.Cursor - 1,
-	}
-}
-
-*/

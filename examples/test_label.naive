@@ -5,4 +5,4 @@ psh 1
 dupl 1
 dupl 1
 sum
-jmp loop
+jump loop

@@ -1,54 +1,29 @@
 package vm
 
 /*
-func (a *VirtualMachine) LoadByteCodeAsmFromFile(sourcePath string) {
-	readFile, err := os.Open(sourcePath)
-
-	if err != nil {
-		color.Set(color.FgHiRed)
-		defer color.Unset()
-
-		log.Fatalf("error opening file: %v\n", err)
-	}
-
-	defer readFile.Close()
-
-	fileScanner := bufio.NewScanner(readFile)
-
-	fileScanner.Split(bufio.ScanLines)
-
-	for fileScanner.Scan() {
-		// TODO(jejikeh): fix that allocation
-		l := lexer.NewLexer(fileScanner.Text())
-		tokens := l.Tokenize()
-
-		a.loadByteCodeAsmFromString(tokens)
-	}
-}
-
-func (a *VirtualMachine) loadByteCodeAsmFromString(asm []lexer.Token) {
+func (a *VirtualMachine) parseNaiveInstructionsFromTokens(asm []token.Token) {
 	if len(asm) == 0 {
 		color.Set(color.FgHiRed)
 		defer color.Unset()
 
-		log.Fatal("ByteCode Asm is empty")
+		log.Fatal("No tokens!")
 	}
 
 	for i := 0; i < len(asm); i++ {
 		switch asm[i].Kind {
-		case lexer.Sum:
+		case token.Sum:
 			a.Instructions = append(a.Instructions, NewPlus())
 
-		case lexer.Sub:
+		case token.Subtract:
 			a.Instructions = append(a.Instructions, NewMinus())
 
-		case lexer.Mul:
+		case token.Multiply:
 			a.Instructions = append(a.Instructions, NewMultiply())
 
-		case lexer.Div:
+		case token.Divide:
 			a.Instructions = append(a.Instructions, NewDivide())
 
-		case lexer.Jump:
+		case token.Jump:
 			if i+1 >= len(asm) {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
@@ -58,25 +33,24 @@ func (a *VirtualMachine) loadByteCodeAsmFromString(asm []lexer.Token) {
 			}
 
 			operand := asm[i+1]
-			if operand.Kind != lexer.OperandNumber {
+			if operand.Kind != token.Identifier && operand.Kind != token.Number {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
 
-				log.Fatal("Jump operand is not a number.")
+				log.Fatal("Jump operand is not a number or identifier.")
 			}
 
-			numOperand, err := strconv.Atoi(operand.Value)
-			if err != nil {
+			if operand.IntegerValue < 0 {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
 
-				log.Fatal("Jump operand is not a number.")
+				log.Fatalf("Jump operand is negative: [%d]! Probably, it was not resolved.\n", operand.IntegerValue)
 			}
 
-			a.Instructions = append(a.Instructions, NewJump(numOperand))
+			a.Instructions = append(a.Instructions, NewJump(operand.IntegerValue))
 			i++
 
-		case lexer.Push:
+		case token.Push:
 			if i+1 >= len(asm) {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
@@ -85,25 +59,17 @@ func (a *VirtualMachine) loadByteCodeAsmFromString(asm []lexer.Token) {
 			}
 
 			operand := asm[i+1]
-			if operand.Kind != lexer.OperandNumber {
+			if operand.Kind != token.Number {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
 
-				log.Fatal("Push operand is not a number.")
+				log.Fatalf("Push operand is not a number: [%s]\n", operand.Kind)
 			}
 
-			numOperand, err := strconv.Atoi(operand.Value)
-			if err != nil {
-				color.Set(color.FgHiRed)
-				defer color.Unset()
-
-				log.Fatal("Push operand is not a number.")
-			}
-
-			a.Instructions = append(a.Instructions, NewPush(numOperand))
+			a.Instructions = append(a.Instructions, NewPush(operand.IntegerValue))
 			i++
 
-		case lexer.Duplicate:
+		case token.Duplicate:
 			// TODO: Move it to separate
 			if i+1 >= len(asm) {
 				color.Set(color.FgHiRed)
@@ -113,29 +79,24 @@ func (a *VirtualMachine) loadByteCodeAsmFromString(asm []lexer.Token) {
 			}
 
 			operand := asm[i+1]
-			if operand.Kind != lexer.OperandNumber {
+			if operand.Kind != token.Number {
 				color.Set(color.FgHiRed)
 				defer color.Unset()
 
 				log.Fatal("Duplicate operand is not a number.")
 			}
 
-			numOperand, err := strconv.Atoi(operand.Value)
-			if err != nil {
-				color.Set(color.FgHiRed)
-				defer color.Unset()
-
-				log.Fatal("Duplicate operand is not a number.")
-			}
-
-			a.Instructions = append(a.Instructions, NewDuplicate(numOperand))
+			a.Instructions = append(a.Instructions, NewDuplicate(operand.IntegerValue))
 			i++
+
+		case token.EndOfLine:
+			continue
 
 		default:
 			color.Set(color.FgHiRed)
 			defer color.Unset()
 
-			log.Fatalf("Unknown instruction: [%s]\n", asm[i].Value)
+			log.Printf("Unknown instruction: [%s]\n", asm[i].Kind)
 		}
 	}
 }

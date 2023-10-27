@@ -1,12 +1,6 @@
 package vm
 
-import (
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-)
-
+/*
 func (a *VirtualMachine) DumpDisasembleInstructionsToFile(outputPath string) {
 	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
 	if err != nil {
@@ -23,7 +17,7 @@ func (a *VirtualMachine) DumpDisasembleInstructionsToFile(outputPath string) {
 
 	for _, v := range a.Instructions {
 		instructionTextRepresentation := InstructionToString[v.Type]
-		if v.Type == Plus || v.Type == Minus || v.Type == Multiply || v.Type == Divide || v.Type == End {
+		if v.Kind == token. || v.Type == Minus || v.Type == Multiply || v.Type == Divide || v.Type == End {
 			f.Write([]byte(instructionTextRepresentation))
 			f.Write([]byte("\n"))
 			continue
@@ -47,3 +41,4 @@ func (a *VirtualMachine) DumpDisasembleInstructions(s *string) {
 		*s += instructionTextRepresentation + "\n"
 	}
 }
+*/

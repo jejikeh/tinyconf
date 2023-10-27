@@ -69,21 +69,3 @@ func NewEnd() Instruction {
 }
 
 // VirtualMachine represents a virtual machine.
-
-type VirtualMachine struct {
-	Stack              []int
-	Instructions       []Instruction
-	Labels             map[string]int
-	NotResolvedLabels  map[string]int
-	InstructionPointer int
-}
-
-func NewVirtualMachine() *VirtualMachine {
-	return &VirtualMachine{
-		Stack:              make([]int, 0),
-		Instructions:       make([]Instruction, 0),
-		Labels:             make(map[string]int),
-		NotResolvedLabels:  make(map[string]int),
-		InstructionPointer: 0,
-	}
-}
