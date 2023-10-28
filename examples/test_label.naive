@@ -1,0 +1,7 @@
+// this is test of labels
+psh 0
+psh 1
+dupl 1
+dupl 1
+sum
+jump :loop

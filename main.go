@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
+	"github.com/jejikeh/ambient/lexer"
 	"github.com/jejikeh/ambient/vm"
 )
 
@@ -26,6 +26,10 @@ func main() {
 	binaryFlag := flag.Bool("x", false, "Binary flag")
 	defer runBinary(runCommand, binaryFlag, sourcePath, debugFlag)
 
+	// Lexer Command
+	lexerFlag := flag.Bool("lex", false, "Lexer file")
+	defer lexerFile(lexerFlag, sourcePath)
+
 	flag.Parse()
 }
 
@@ -34,17 +38,14 @@ func dissembleBinary(disassembleFlag *bool, source *string, output *string) {
 		return
 	}
 
-	ambient := vm.NewVirtualMachine()
-	ambient.LoadProgramFromFile(*source)
+	l := lexer.NewLexerFromBinary(*source)
 
 	if *output == "" {
-		dissasembleContent := ""
-		ambient.DumpDisasembleInstructions(&dissasembleContent)
-		fmt.Println(dissasembleContent)
+		l.DebugTokensToNaive()
 		return
 	}
 
-	ambient.DumpDisasembleInstructionsToFile(*output)
+	l.DumpTokensToFile(*output)
 }
 
 func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
@@ -55,9 +56,9 @@ func runBinary(runFlag *bool, binaryFlag *bool, source *string, debug *bool) {
 	ambient := vm.NewVirtualMachine()
 
 	if *binaryFlag {
-		ambient.LoadProgramFromFile(*source)
+		ambient.LoadNaiveFromSourceBinary(*source)
 	} else {
-		ambient.LoadByteCodeAsmFromFile(*source)
+		ambient.LoadNaiveFromSourceFile(*source)
 	}
 
 	if *debug {
@@ -75,12 +76,25 @@ func buildBinary(binaryFlag *bool, source *string, output *string, debug *bool) 
 		return
 	}
 
-	ambient := vm.NewVirtualMachine()
-	ambient.LoadByteCodeAsmFromFile(*source)
+	l := lexer.NewLexerFromSource(*source)
+	l.Tokens = l.Tokenize()
+
+	v := vm.NewVirtualMachine()
+	v.LoadProgram(l.Tokens)
 
 	if *debug {
-		ambient.PrintInstructions()
+		v.PrintInstructions()
 	}
 
-	ambient.SaveProgramToNewFile(*output)
+	l.DumpTokensToBinary(*output)
+}
+
+func lexerFile(lexerFlag *bool, source *string) {
+	if !*lexerFlag {
+		return
+	}
+
+	l := lexer.NewLexerFromSource(*source)
+	tokens := l.Tokenize()
+	lexer.PrintDebugTokens(tokens)
 }

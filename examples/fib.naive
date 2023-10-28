@@ -1,0 +1,5 @@
+psh 1
+jif hello
+psh 1
+:hello
+psh 1

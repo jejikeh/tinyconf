@@ -1,0 +1,15 @@
+e_cat :: entity {
+
+}
+
+c_hello_world :: comp {
+    string msg = "hello world";
+
+    say() {
+        println(msg);
+    }
+}
+
+[c_hello_world]
+s_printer :: system {
+}
