@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/fatih/color"
-	"github.com/jejikeh/ambient/common"
 	"github.com/jejikeh/ambient/lexer"
 	"github.com/jejikeh/ambient/token"
 )
@@ -44,9 +43,9 @@ func (a *VirtualMachine) LoadProgram(program []token.Token) {
 	a.Instructions = program
 }
 
-func (a *VirtualMachine) Run() common.Error {
+func (a *VirtualMachine) Run() Error {
 	if a.InstructionPointer < 0 || a.InstructionPointer >= len(a.Instructions) {
-		return common.IllegalInstruction
+		return IllegalInstruction
 	}
 
 	instruction := a.Instructions[a.InstructionPointer]
@@ -70,11 +69,11 @@ func (a *VirtualMachine) Run() common.Error {
 		//		2. PRINT_STACK: [0, 1, 0]
 
 		if len(a.Stack)-a.Instructions[a.InstructionPointer+1].IntegerValue <= 0 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		if instruction.IntegerValue < 0 {
-			return common.IllegalInstruction
+			return IllegalInstruction
 		}
 
 		a.Stack = append(a.Stack, a.Stack[len(a.Stack)-1-a.Instructions[a.InstructionPointer+1].IntegerValue])
@@ -90,7 +89,7 @@ func (a *VirtualMachine) Run() common.Error {
 		//		4. PRINT_STACK: [0, 1, 2]
 
 		if len(a.Stack) < 2 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] + a.Stack[len(a.Stack)-1]
@@ -107,7 +106,7 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		4. PRINT_STACK: [0, 1, 1]
 
 		if len(a.Stack) < 2 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] - a.Stack[len(a.Stack)-1]
@@ -124,7 +123,7 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		4. PRINT_STACK: [0, 1, 4]
 
 		if len(a.Stack) < 2 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] * a.Stack[len(a.Stack)-1]
@@ -141,11 +140,11 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		4. PRINT_STACK: [0, 1, 2]
 
 		if len(a.Stack) < 2 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		if a.Stack[len(a.Stack)-1] == 0 {
-			return common.DivisionByZero
+			return DivisionByZero
 		}
 
 		a.Stack[len(a.Stack)-2] = a.Stack[len(a.Stack)-2] / a.Stack[len(a.Stack)-1]
@@ -159,7 +158,7 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		1. JMP 2
 		// 		2. PRINT_STACK: [0, 1]
 		if a.Instructions[a.InstructionPointer+1].IntegerValue < 0 || a.Instructions[a.InstructionPointer+1].IntegerValue >= len(a.Instructions) {
-			return common.IllegalInstructionAccess
+			return IllegalInstructionAccess
 		}
 
 		a.InstructionPointer = a.Instructions[a.InstructionPointer+1].IntegerValue
@@ -174,7 +173,7 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		4. PRINT_STACK: [0, 1]
 
 		if len(a.Stack) < 1 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		if a.Stack[len(a.Stack)-1] != 1 {
@@ -193,7 +192,7 @@ func (a *VirtualMachine) Run() common.Error {
 		// 		3. EQ
 		// 		4. PRINT_STACK: [0, 1, 1]
 		if len(a.Stack) < 2 {
-			return common.StackUnderflow
+			return StackUnderflow
 		}
 
 		eq := (a.Stack[len(a.Stack)-2] == a.Stack[len(a.Stack)-1])
@@ -211,18 +210,18 @@ func (a *VirtualMachine) Run() common.Error {
 		a.InstructionPointer++
 	}
 
-	return common.Ok
+	return Ok
 }
 
 func (a *VirtualMachine) Execute(executingLimit int, printCurrentInstruction bool) {
 	isInfinite := executingLimit < 0
 	for i := 0; (i < executingLimit && (a.Instructions[a.InstructionPointer].Kind != token.EndOfLine)) || isInfinite; i++ {
 		err := a.Run()
-		if err != common.Ok {
+		if err != Ok {
 			color.Set(color.FgHiRed)
 			defer color.Unset()
 
-			log.Printf("Error: %s\n", err.String())
+			log.Printf("Error: %s\n", err)
 			a.PrintStack()
 			panic(1)
 		}

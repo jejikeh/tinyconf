@@ -31,7 +31,6 @@ type Token struct {
 	CollumnEnd int
 }
 
-//go:generate stringer -type=TokenType
 type Kind string
 
 const (
