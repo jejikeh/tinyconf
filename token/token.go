@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	"log"
 	"unicode"
 
 	"github.com/jejikeh/ambient/common"
@@ -157,4 +158,17 @@ func (t *Token) SetIndentValue(s string) {
 
 	t.IndentValue.Name = s
 	t.IndentValue.Hash = common.Hash(s)
+}
+
+func (t *Token) DebugPrint() {
+	log.Printf("	[Token]: [%s]\n", t.Kind)
+	log.Printf("		IntegerValue: [%d]\n", t.IntegerValue)
+	log.Printf("		StringValue: [%s]\n", t.StringValue)
+	log.Printf("		LineStart: [%d]\n", t.LineStart)
+	log.Printf("		LineEnd: [%d]\n", t.LineEnd)
+	log.Printf("		CollumnStart: [%d]\n", t.CollumnStart)
+	log.Printf("		CollumnEnd: [%d]\n", t.CollumnEnd)
+	log.Printf("		[Indent]:\n")
+	log.Printf("			Value: [%s]\n", t.Name)
+	log.Printf("			Hash: [%d]\n", t.Hash)
 }

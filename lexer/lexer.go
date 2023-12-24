@@ -153,7 +153,7 @@ func PrintDebugTokens(tokens []token.Token) {
 	log.Println("Tokens:")
 	for i, token := range tokens {
 		log.Printf("[%d] ", i)
-		logDebugToken(&token)
+		token.DebugPrint()
 	}
 }
 
@@ -496,19 +496,6 @@ func (l *Lexer) composeNewToken() (token.Token, error) {
 	}
 
 	return *t, nil
-}
-
-func logDebugToken(t *token.Token) {
-	log.Printf("	[Token]: [%s]\n", t.Kind)
-	log.Printf("		IntegerValue: [%d]\n", t.IntegerValue)
-	log.Printf("		StringValue: [%s]\n", t.StringValue)
-	log.Printf("		LineStart: [%d]\n", t.LineStart)
-	log.Printf("		LineEnd: [%d]\n", t.LineEnd)
-	log.Printf("		CollumnStart: [%d]\n", t.CollumnStart)
-	log.Printf("		CollumnEnd: [%d]\n", t.CollumnEnd)
-	log.Printf("		[Indent]:\n")
-	log.Printf("			Value: [%s]\n", t.Name)
-	log.Printf("			Hash: [%d]\n", t.Hash)
 }
 
 func (l *Lexer) DebugTokensToNaive() {
